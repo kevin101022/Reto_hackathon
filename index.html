@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CondoManager Pro - Balcones de Salesia</title>
+    <link rel="stylesheet" href="styles.css" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <div id="notificationContainer"></div>
+
+    <div id="appContainer" class="app-container active">
+      <header class="header">
+        <div class="header-left">
+          <h1>CondoManager Pro</h1>
+          <p>Balcones de Salesia</p>
+        </div>
+        <div class="header-right">
+          <div class="user-info">
+            <div class="name" id="userName">Administrador</div>
+            <div class="role" id="userRole">Admin</div>
+          </div>
+          <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+        </div>
+      </header>
+
+      <div class="main-content">
+        <aside class="sidebar">
+          <div class="nav-item active" onclick="showPage('dashboard')">
+            Dashboard
+          </div>
+          <div class="nav-item" onclick="showPage('cartera')">
+            Gestión de Cartera
+          </div>
+          <div class="nav-item" onclick="showPage('pagos')">Pagos y Gastos</div>
+          <div class="nav-item" onclick="showPage('censo')">
+            Censo de Residentes
+          </div>
+          <!-- Reportes movido al Dashboard, elemento de navegación eliminado -->
+          <div
+            class="nav-item"
+            onclick="showPage('configuracion')"
+            id="navConfig"
+          >
+            Configuración
+          </div>
+        </aside>
+
+        <main class="content-area">
+          <div id="pageDashboard" class="page-content">
+            <div class="page-header">
+              <h2>Dashboard General</h2>
+              <p>Vista general del condominio</p>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card success">
+                <div class="label">Total Recaudado</div>
+                <div class="value" id="statRecaudado">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="label">Total Gastos</div>
+                <div class="value" id="statGastos">$0</div>
+              </div>
+              <div class="stat-card warning">
+                <div class="label">Cartera Pendiente</div>
+                <div class="value" id="statPendiente">$0</div>
+              </div>
+              <div class="stat-card danger">
+                <div class="label">Apartamentos Morosos</div>
+                <div class="value" id="statMorosos">0</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Flujo de Caja (Últimos 6 Meses)</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartFlujo"></canvas>
+              </div>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 20px;
+              "
+            >
+              <div class="card">
+                <div class="card-header">
+                  <h3>Egresos por Categoría</h3>
+                </div>
+                <div class="chart-container">
+                  <canvas id="chartEgresos"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <h3>Top 5 Morosos</h3>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Apto</th>
+                      <th>Propietario</th>
+                      <th>Deuda</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableMorosos">
+                    <tr>
+                      <td colspan="3" style="text-align: center">
+                        Cargando...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Sección de Reportes movida desde 'Reportes' -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+              "
+            >
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Estado de Cartera</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Reporte completo de cartera por apartamento
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('cartera')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Flujo de Caja</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Ingresos y egresos del período
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('flujo')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Egresos por Categoría</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Análisis de gastos por rubro
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('egresos')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Morosidad</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Listado de apartamentos morosos
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('morosos')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Censo Completo</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Base de datos de residentes y vehículos
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('censo')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Respaldo Completo</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Exportar todos los datos del sistema
+                </p>
+                <button class="btn btn-secondary" onclick="exportarRespaldo()">
+                  Descargar Backup JSON
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">
+                  Estado de Cuenta por Apartamento
+                </h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Generar estado de cuenta detallado por apartamento (seleccione
+                  el apto en la ventana emergente).
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('estado_cuenta_apto')"
+                >
+                  Generar Estado de Cuenta
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="pageCartera" class="page-content hidden">
+            <div class="page-header">
+              <h2>Gestión de Cartera</h2>
+              <p>Control de pagos y morosidad</p>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Estado de Cartera por Apartamento</h3>
+                <div class="filters-cartera">
+                  <select id="filtroCartera" onchange="filtrarCartera()">
+                    <option value="todos">Todos</option>
+                    <option value="corriente">Al Corriente</option>
+                    <option value="moroso">Morosos</option>
+                  </select>
+
+                  <!-- Nuevo filtro por apartamento (opciones pobladas dinámicamente) -->
+                  <select id="filtroApto" onchange="filtrarCartera()">
+                    <option value="todos">Todos los Aptos</option>
+                  </select>
+
+                  <!-- Nuevo filtro por torre (A, B, C...) -->
+                  <select id="filtroTorre" onchange="filtrarCartera()">
+                    <option value="todas">Todas las Torres</option>
+                  </select>
+
+                  <!-- Nuevos filtros de rango de fechas -->
+                  <input
+                    type="date"
+                    id="filtroDesde"
+                    onchange="filtrarCartera()"
+                  />
+                  <input
+                    type="date"
+                    id="filtroHasta"
+                    onchange="filtrarCartera()"
+                  />
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Apto</th>
+                    <th>Propietario</th>
+                    <th>Cuota Mensual</th>
+                    <th>Pagado</th>
+                    <th>Pendiente</th>
+                    <th>Meses Adeudados</th>
+                    <th>Estado</th>
+                    <th>Último Pago</th>
+                    <th>Próximo Pago</th>
+                  </tr>
+                </thead>
+                <tbody id="tableCartera">
+                  <tr>
+                    <td colspan="6" style="text-align: center">Cargando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="pagePagos" class="page-content hidden">
+            <div class="page-header">
+              <h2>Registro de Pagos y Gastos</h2>
+              <p>Gestione transacciones del condominio</p>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 20px;
+              "
+            >
+              <div class="card">
+                <div class="card-header">
+                  <h3>Registrar Pago</h3>
+                </div>
+                <form id="formPago">
+                  <div class="form-group">
+                    <label>Apartamento</label>
+                    <select id="pagoApto" required>
+                      <option value="">Seleccione...</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Monto</label>
+                    <input
+                      type="number"
+                      id="pagoMonto"
+                      placeholder="150000"
+                      step="1000"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="pagoFecha" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Concepto</label>
+                    <input
+                      type="text"
+                      id="pagoConcepto"
+                      value="Cuota de administración"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Comprobante (imagen o PDF)</label>
+                    <input
+                      type="file"
+                      id="pagoComprobante"
+                      accept="image/*,application/pdf"
+                    />
+                  </div>
+                  <button type="submit" class="btn btn-primary">
+                    Registrar Pago
+                  </button>
+                </form>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <h3>Registrar Gasto</h3>
+                </div>
+                <form id="formGasto">
+                  <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="gastoCategoria" required>
+                      <option value="">Seleccione...</option>
+                      <option value="Mantenimiento">Mantenimiento</option>
+                      <option value="Servicios">Servicios Públicos</option>
+                      <option value="Seguridad">Seguridad</option>
+                      <option value="Aseo">Aseo</option>
+                      <option value="Administrativo">Administrativo</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Monto</label>
+                    <input
+                      type="number"
+                      id="gastoMonto"
+                      placeholder="50000"
+                      step="1000"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="gastoFecha" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea
+                      id="gastoDescripcion"
+                      rows="2"
+                      placeholder="Detalle del gasto"
+                      required
+                    ></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label>Comprobante (imagen o PDF)</label>
+                    <input
+                      type="file"
+                      id="gastoComprobante"
+                      accept="image/*,application/pdf"
+                    />
+                  </div>
+                  <button type="submit" class="btn btn-secondary">
+                    Registrar Gasto
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Historial de Transacciones</h3>
+                <select
+                  id="filtroTransacciones"
+                  onchange="filtrarTransacciones()"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="pagos">Solo Pagos</option>
+                  <option value="gastos">Solo Gastos</option>
+                </select>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Detalle</th>
+                    <th>Monto</th>
+                    <th>Comprobante</th>
+                  </tr>
+                </thead>
+                <tbody id="tableTransacciones">
+                  <tr>
+                    <td colspan="6" style="text-align: center">Cargando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="pageCenso" class="page-content hidden">
+            <div class="page-header">
+              <h2>Censo de Residentes</h2>
+              <p>Base de datos de propietarios y vehículos</p>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Propietarios y Residentes</h3>
+                <div>
+                  <button
+                    class="btn-small btn-primary"
+                    onclick="openResidentModal('add')"
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Apto</th>
+                    <th>Propietario</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Residentes</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableCenso">
+                  <tr>
+                    <td colspan="5" style="text-align: center">Cargando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Registro de Vehículos</h3>
+                <div>
+                  <button class="btn-small btn-primary" onclick="openVehicleModal('add')">Agregar</button>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Apto</th>
+                    <th>Tipo</th>
+                    <th>Marca</th>
+                    <th>Placa</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableVehiculos">
+                  <tr>
+                    <td colspan="5" style="text-align: center">Cargando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="pageReportes" class="page-content hidden">
+            <div class="page-header">
+              <h2>Reportes y Exportación</h2>
+              <p>Genere informes detallados en PDF</p>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+              "
+            >
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Estado de Cartera</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Reporte completo de cartera por apartamento
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('cartera')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Flujo de Caja</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Ingresos y egresos del período
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('flujo')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Egresos por Categoría</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Análisis de gastos por rubro
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('egresos')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Morosidad</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Listado de apartamentos morosos
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('morosos')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Censo Completo</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Base de datos de residentes y vehículos
+                </p>
+                <button
+                  class="btn btn-primary"
+                  onclick="exportarReporte('censo')"
+                >
+                  Exportar PDF
+                </button>
+              </div>
+
+              <div class="card">
+                <h3 style="margin-bottom: 15px">Respaldo Completo</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px">
+                  Exportar todos los datos del sistema
+                </p>
+                <button class="btn btn-secondary" onclick="exportarRespaldo()">
+                  Descargar Backup JSON
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="pageConfiguracion" class="page-content hidden">
+            <div class="page-header">
+              <h2>Configuración del Sistema</h2>
+              <p>Administración y configuración general</p>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Configuración de Cuotas</h3>
+              </div>
+              <form id="formConfigCuota">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Cuota Mensual Base</label>
+                    <input
+                      type="number"
+                      id="cuotaBase"
+                      placeholder="150000"
+                      step="1000"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Tasa de Interés Mora (%)</label>
+                    <input
+                      type="number"
+                      id="tasaInteres"
+                      placeholder="2.5"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  Guardar Configuración
+                </button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Usuarios del Sistema</h3>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>admin</td>
+                    <td>
+                      <span class="badge badge-success">Administrador</span>
+                    </td>
+                    <td><span class="badge badge-success">Activo</span></td>
+                  </tr>
+                  <tr>
+                    <td>consulta</td>
+                    <td>
+                      <span class="badge badge-warning">Solo Lectura</span>
+                    </td>
+                    <td><span class="badge badge-success">Activo</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Bitácora de Cambios (Últimos 20)</h3>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBitacora">
+                  <tr>
+                    <td colspan="3" style="text-align: center">Cargando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Modal para agregar/editar residente -->
+    <div id="residentModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="residentModalTitle">Agregar Residente</h3>
+          <button class="btn-close" onclick="closeResidentModal()">×</button>
+        </div>
+        <form id="formResident">
+          <input type="hidden" id="residentOriginalApto" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Apartamento (ej: A101)</label>
+              <input type="text" id="residentApto" required />
+            </div>
+            <div class="form-group">
+              <label>Propietario</label>
+              <input type="text" id="residentPropietario" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" id="residentTelefono" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="residentEmail" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Residentes</label>
+              <input type="number" id="residentResidentes" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Cuota</label>
+              <input type="number" id="residentCuota" step="1000" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 12px">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeResidentModal()"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal para agregar/editar vehículo -->
+    <div id="vehicleModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="vehicleModalTitle">Agregar Vehículo</h3>
+          <button class="btn-close" onclick="closeVehicleModal()">×</button>
+        </div>
+        <form id="formVehicle">
+          <input type="hidden" id="vehicleOriginalPlaca" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Apartamento</label>
+              <input type="text" id="vehicleApto" required />
+            </div>
+            <div class="form-group">
+              <label>Tipo</label>
+              <input type="text" id="vehicleTipo" placeholder="Automóvil / Motocicleta" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Marca</label>
+              <input type="text" id="vehicleMarca" />
+            </div>
+            <div class="form-group">
+              <label>Placa</label>
+              <input type="text" id="vehiclePlaca" required />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="button" class="btn btn-secondary" onclick="closeVehicleModal()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
